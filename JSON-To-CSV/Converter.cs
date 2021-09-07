@@ -1,13 +1,15 @@
-﻿using System.Linq;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json.Linq;
 using System;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace JSON_To_CSV
 {
     public static class Converter
     {
+        #region Methods
+
         public static void WriteConversion(string file, JArray json)
         {
             List<string> collumns = new List<string>();
@@ -26,7 +28,7 @@ namespace JSON_To_CSV
                         row.Add("");
                     }
 
-                    int idx = collumns.FindIndex(0,x=>x == token.Name);
+                    int idx = collumns.FindIndex(0, x => x == token.Name);
                     row[idx] = token.Value.ToString();
                 }
                 rows.Add(row);
@@ -37,5 +39,7 @@ namespace JSON_To_CSV
 
             File.WriteAllText(file, $"{col_names}\n{csv}");
         }
+
+        #endregion Methods
     }
 }

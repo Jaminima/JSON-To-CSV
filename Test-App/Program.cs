@@ -1,16 +1,12 @@
-﻿using System;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Test_App
 {
-    class Program
+    internal class Program
     {
-        class SomeClass
-        {
-            public string name = "Example", key = "value";
-        }
+        #region Methods
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             SomeClass[] someClasses = new SomeClass[5];
             for (int i = 0; i < someClasses.Length; i++) someClasses[i] = new SomeClass();
@@ -18,5 +14,20 @@ namespace Test_App
             JArray jArray = JArray.FromObject(someClasses);
             JSON_To_CSV.Converter.WriteConversion("./out.csv", jArray);
         }
+
+        #endregion Methods
+
+        #region Classes
+
+        private class SomeClass
+        {
+            #region Fields
+
+            public string name = "Example", key = "value";
+
+            #endregion Fields
+        }
+
+        #endregion Classes
     }
 }
