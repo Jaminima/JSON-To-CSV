@@ -10,7 +10,33 @@ namespace JSON_To_CSV
     {
         #region Methods
 
-        private static List<string> GetRow(JObject obj, ref List<string> collumns, string col_name_prefix="")
+        private static void AddToRow(string colName, string value, ref List<string> row, ref List<string> collumns)
+        {
+            colName.Replace("=", "");
+            if (!collumns.Contains(colName))
+            {
+                collumns.Add(colName);
+            }
+
+            EnsureLength(ref row, collumns.Count);
+
+            int idx = collumns.FindIndex(0, x => x == colName);
+            try
+            {
+                row[idx] = value.ToString().Replace("\r", "<").Replace("\n", ">").Replace(",", "");
+            }
+            catch
+            {
+                Console.WriteLine($"Cant Find Row {colName}");
+            }
+        }
+
+        private static void EnsureLength(ref List<string> row, int makeLength)
+        {
+            for (int i = row.Count; i < makeLength; i++) row.Add("");
+        }
+
+        private static List<string> GetRow(JObject obj, ref List<string> collumns, string col_name_prefix = "")
         {
             List<string> row = new List<string>();
 
@@ -22,39 +48,52 @@ namespace JSON_To_CSV
 
                 if (token_type == typeof(JObject))
                 {
-                    List<string> innerRow = GetRow((JObject)token.Value, ref collumns, token.Name+"-");
+                    List<string> innerRow = GetRow((JObject)token.Value, ref collumns, col_name_prefix + token.Name + "-");
 
-                    for (int i = row.Count; i < collumns.Count; i++) row.Add("");
-                    for (int i = 0; i < row.Count; i++)
-                    {
-                        if (innerRow[i] != "") row[i] = innerRow[i];
-                    }
+                    EnsureLength(ref row, collumns.Count);
+                    MergeRow(ref row, innerRow);
                 }
                 else if (token_type == typeof(JArray))
                 {
-                    Console.WriteLine("Ignored JAarray");
+                    ProcessJArray((JArray)token.Value, ref collumns, ref row, col_name_prefix + token.Name + "-");
                 }
                 else if (token_type == typeof(JValue))
                 {
-                    if (!collumns.Contains(colName))
-                    {
-                        collumns.Add(colName);
-                    }
-
-                    for (int i = row.Count; i < collumns.Count; i++) row.Add("");
-
-                    int idx = collumns.FindIndex(0, x => x == colName);
-                    try
-                    {
-                        row[idx] = token.Value.ToString().Replace("\r","<").Replace("\n", ">").Replace(",","");
-                    }
-                    catch
-                    {
-                        Console.WriteLine($"Cant Find Row {colName}");
-                    }
+                    AddToRow(colName, token.Value.ToString(), ref row, ref collumns);
                 }
             }
             return row;
+        }
+
+        private static void MergeRow(ref List<string> row, List<string> subRow)
+        {
+            for (int i = 0; i < row.Count; i++)
+            {
+                if (subRow[i] != "") row[i] = subRow[i];
+            }
+        }
+
+        private static void ProcessJArray(JArray jArray, ref List<string> collumns, ref List<string> row, string col_name_prefix = "")
+        {
+            int item_idx = 0;
+            foreach (JToken item in jArray)
+            {
+                if (item.Type == JTokenType.Array) ProcessJArray((JArray)item, ref collumns, ref row, col_name_prefix + item_idx + "-");
+                else if (item.Type == JTokenType.Object)
+                {
+                    List<string> innerRow = GetRow((JObject)item, ref collumns, col_name_prefix + item_idx + "-");
+
+                    EnsureLength(ref row, collumns.Count);
+                    MergeRow(ref row, innerRow);
+                }
+                else
+                {
+                    string colName = col_name_prefix + item_idx;
+                    AddToRow(colName, item.ToString(), ref row, ref collumns);
+                }
+
+                item_idx++;
+            }
         }
 
         public static void WriteConversion(string file, JArray json)
