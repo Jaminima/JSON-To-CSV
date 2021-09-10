@@ -40,28 +40,27 @@ namespace JSON_To_CSV
         {
             List<string> row = new List<string>();
 
-            foreach (JProperty token in obj.Children())
+            IEnumerable<JProperty> children = obj.Children().Select(x => (JProperty)x);
+
+            foreach (JProperty token in children.Where(x => x.Value.GetType() == typeof(JValue)))
             {
                 string colName = col_name_prefix + token.Name;
-
-                Type token_type = token.Value.GetType();
-
-                if (token_type == typeof(JObject))
-                {
-                    List<string> innerRow = GetRow((JObject)token.Value, ref collumns, col_name_prefix + token.Name + "-");
-
-                    EnsureLength(ref row, collumns.Count);
-                    MergeRow(ref row, innerRow);
-                }
-                else if (token_type == typeof(JArray))
-                {
-                    ProcessJArray((JArray)token.Value, ref collumns, ref row, col_name_prefix + token.Name + "-");
-                }
-                else if (token_type == typeof(JValue))
-                {
-                    AddToRow(colName, token.Value.ToString(), ref row, ref collumns);
-                }
+                AddToRow(colName, token.Value.ToString(), ref row, ref collumns);
             }
+
+            foreach (JProperty token in children.Where(x => x.Value.GetType() == typeof(JObject)))
+            {
+                List<string> innerRow = GetRow((JObject)token.Value, ref collumns, col_name_prefix + token.Name + "-");
+
+                EnsureLength(ref row, collumns.Count);
+                MergeRow(ref row, innerRow);
+            }
+
+            foreach (JProperty token in children.Where(x => x.Value.GetType() == typeof(JArray)))
+            {
+                ProcessJArray((JArray)token.Value, ref collumns, ref row, col_name_prefix + token.Name + "-");
+            }
+
             return row;
         }
 
